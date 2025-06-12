@@ -28,6 +28,7 @@
     "ai": "^4.3.16",
     "autoprefixer": "^10.4.16",
     "clsx": "^2.1.1",
+    "critters": "^0.0.23",
     "eslint": "^9.28.0",
     "eslint-config-next": "^15.3.3",
     "next": "^15.3.3",

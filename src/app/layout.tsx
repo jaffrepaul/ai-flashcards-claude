@@ -1,11 +1,12 @@
-'use client';
-
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider';
+import { metadata } from './metadata';
 
 const inter = Inter({ subsets: ['latin'] });
+
+export { metadata };
 
 export default function RootLayout({
   children,

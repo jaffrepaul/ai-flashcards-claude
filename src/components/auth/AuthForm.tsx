@@ -6,9 +6,10 @@ import { useAuth } from '@/hooks/useAuth';
 interface AuthFormProps {
   mode: 'signin' | 'signup';
   onToggleMode: () => void;
+  serverError?: string | null;
 }
 
-export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
+export function AuthForm({ mode, onToggleMode, serverError }: AuthFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -92,9 +93,9 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
             />
           </div>
 
-          {error && (
+          {(error || serverError) && (
             <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
-              {error}
+              {serverError || error}
             </div>
           )}
 
