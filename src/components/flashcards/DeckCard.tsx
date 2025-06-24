@@ -1,23 +1,68 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Deck } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { authenticatedFetch } from '@/lib/api-utils';
 
 interface DeckCardProps {
   deck: Deck;
   className?: string;
+  onDelete?: (deckId: string) => void;
 }
 
-export function DeckCard({ deck, className }: DeckCardProps) {
+export function DeckCard({ deck, className, onDelete }: DeckCardProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${deck.title}"? This will also delete all ${deck.card_count || 0} cards in this deck. This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+
+    try {
+      await authenticatedFetch(`/api/decks/${deck.id}`, {
+        method: 'DELETE',
+      });
+
+      onDelete?.(deck.id);
+    } catch (error) {
+      console.error('Error deleting deck:', error);
+      alert('Failed to delete deck. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Link href={`/deck/${deck.id}`}>
       <div
         className={cn(
-          'bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer',
+          'bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer relative group',
           className
         )}
       >
+        {/* Delete Button */}
+        <button
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className='absolute top-3 right-3 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100 z-10'
+          title='Delete deck'
+        >
+          {isDeleting ? (
+            <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+          ) : (
+            '×'
+          )}
+        </button>
+
         <div className='flex items-start justify-between'>
           <div className='flex-1'>
             <h3 className='text-lg font-semibold text-gray-900 mb-2'>

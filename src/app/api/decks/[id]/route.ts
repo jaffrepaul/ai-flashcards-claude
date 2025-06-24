@@ -113,26 +113,26 @@ export async function DELETE(
     const authenticatedRequest = await withAuth(request);
     const user = requireAuth(authenticatedRequest);
 
-    // Verify ownership
-    const { data: existingDeck, error: fetchError } = await supabaseServer
-      .from('decks')
-      .select('user_id')
-      .eq('id', params.id)
-      .eq('user_id', user.id)
-      .single();
+    // First, delete all cards in the deck
+    const { error: cardsDeleteError } = await supabaseServer
+      .from('cards')
+      .delete()
+      .eq('deck_id', params.id);
 
-    if (fetchError || !existingDeck) {
-      return createErrorResponse('Deck not found', 404);
+    if (cardsDeleteError) {
+      console.error('Error deleting cards:', cardsDeleteError);
+      return createErrorResponse('Failed to delete deck cards', 500);
     }
 
-    const { error } = await supabaseServer
+    // Then delete the deck
+    const { error: deckDeleteError } = await supabaseServer
       .from('decks')
       .delete()
       .eq('id', params.id)
       .eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error deleting deck:', error);
+    if (deckDeleteError) {
+      console.error('Error deleting deck:', deckDeleteError);
       return createErrorResponse('Failed to delete deck', 500);
     }
 

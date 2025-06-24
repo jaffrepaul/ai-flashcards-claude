@@ -24,39 +24,14 @@ export function Header() {
 
           <nav className='hidden md:flex items-center space-x-8'>
             {user ? (
-              <>
-                <Link
-                  href='/dashboard'
-                  className='text-gray-600 hover:text-gray-900 transition-colors'
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href='/create'
-                  className='text-gray-600 hover:text-gray-900 transition-colors'
-                >
-                  Create Deck
-                </Link>
-                <Link
-                  href='/explore'
-                  className='text-gray-600 hover:text-gray-900 transition-colors'
-                >
-                  Explore
-                </Link>
-              </>
+              <>{/* Dashboard functionality accessible from other pages */}</>
             ) : (
               <>
                 <Link
-                  href='/features'
+                  href='/'
                   className='text-gray-600 hover:text-gray-900 transition-colors'
                 >
                   Features
-                </Link>
-                <Link
-                  href='/pricing'
-                  className='text-gray-600 hover:text-gray-900 transition-colors'
-                >
-                  Pricing
                 </Link>
               </>
             )}

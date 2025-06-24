@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import { Header } from '@/components/layout/Header';
 
 export default function HomePage() {
   const { user } = useAuth();
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -47,11 +50,14 @@ export default function HomePage() {
                       )}
                     </div>
                     <div className='mt-3 sm:mt-0 sm:ml-3'>
-                      <Link href='/demo'>
-                        <Button variant='outline' size='lg' className='w-full'>
-                          View Demo
-                        </Button>
-                      </Link>
+                      <Button
+                        variant='outline'
+                        size='lg'
+                        className='w-full'
+                        onClick={() => setIsDemoModalOpen(true)}
+                      >
+                        View Demo
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -188,25 +194,25 @@ export default function HomePage() {
 
         {/* CTA Section */}
         <div className='bg-blue-600'>
-          <div className='max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8'>
+          <div className='max-w-6xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8'>
             <h2 className='text-3xl font-extrabold text-white sm:text-4xl'>
-              <span className='block'>Ready to supercharge your learning?</span>
-              <span className='block'>Start creating AI flashcards today.</span>
+              <div className='mb-2'>Ready to supercharge your learning?</div>
+              <div>Start creating AI flashcards today.</div>
             </h2>
             <p className='mt-4 text-lg leading-6 text-blue-200'>
-              Join thousands of students and professionals who are already
-              learning smarter with AI-powered flashcards.
+              Join thousands of students and professionals who are learning
+              smarter with AI-powered flashcards.
             </p>
             <div className='mt-8'>
               {user ? (
                 <Link href='/dashboard'>
-                  <Button size='lg' variant='secondary'>
+                  <Button size='lg' className='w-full sm:w-auto'>
                     Go to Dashboard
                   </Button>
                 </Link>
               ) : (
                 <Link href='/auth'>
-                  <Button size='lg' variant='secondary'>
+                  <Button size='lg' className='w-full sm:w-auto'>
                     Get Started Free
                   </Button>
                 </Link>
@@ -215,6 +221,25 @@ export default function HomePage() {
           </div>
         </div>
       </main>
+
+      {/* Demo Video Modal */}
+      <Modal
+        isOpen={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+        title='AI Flashcards Demo'
+        className='max-w-4xl'
+      >
+        <div className='aspect-video w-full'>
+          <iframe
+            src='https://www.youtube.com/embed/Aq5WXmQQooo?autoplay=1'
+            title='AI Flashcards Demo'
+            className='w-full h-full rounded-lg'
+            frameBorder='0'
+            allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+            allowFullScreen
+          ></iframe>
+        </div>
+      </Modal>
     </div>
   );
 }

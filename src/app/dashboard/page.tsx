@@ -45,6 +45,10 @@ export default function DashboardPage() {
     setIsCreateModalOpen(false);
   };
 
+  const handleDeckDeleted = (deckId: string) => {
+    setDecks(decks.filter(deck => deck.id !== deckId));
+  };
+
   if (loading || isLoading) {
     return (
       <div className='min-h-screen bg-gray-50'>
@@ -96,7 +100,11 @@ export default function DashboardPage() {
         ) : (
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
             {decks.map(deck => (
-              <DeckCard key={deck.id} deck={deck} />
+              <DeckCard
+                key={deck.id}
+                deck={deck}
+                onDelete={handleDeckDeleted}
+              />
             ))}
           </div>
         )}
