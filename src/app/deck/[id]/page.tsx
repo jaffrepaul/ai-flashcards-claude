@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { FlashCard } from '@/components/flashcards/FlashCard';
+import { CardFilter } from '@/components/flashcards/CardFilter';
 import { QuizSession } from '@/components/flashcards/QuizSession';
 import { Deck, Card } from '@/types/database';
 import { authenticatedFetch } from '@/lib/api-utils';
@@ -18,9 +19,14 @@ export default function DeckDetailPage() {
   const { user, loading } = useAuth();
   const [deck, setDeck] = useState<Deck | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
+  const [filteredCards, setFilteredCards] = useState<Card[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isStudying, setIsStudying] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [generateForm, setGenerateForm] = useState({
     topic: '',
     content: '',
@@ -37,6 +43,7 @@ export default function DeckDetailPage() {
       const data = await authenticatedFetch(`/api/decks/${deckId}`);
       setDeck(data.deck);
       setCards(data.deck.cards || []);
+      setFilteredCards(data.deck.cards || []);
     } catch (error) {
       console.error('Error fetching deck:', error);
       router.push('/dashboard');
@@ -102,7 +109,9 @@ export default function DeckDetailPage() {
 
       setGenerationStatus('Saving cards to database...');
 
-      setCards([...cards, ...data.cards]);
+      const newCards = [...cards, ...data.cards];
+      setCards(newCards);
+      setFilteredCards(newCards);
       setIsGenerateModalOpen(false);
       setGenerateForm({
         topic: '',
@@ -126,8 +135,79 @@ export default function DeckDetailPage() {
     }
   };
 
+  const handleCardSelect = (cardId: string, selected: boolean) => {
+    const newSelected = new Set(selectedCards);
+    if (selected) {
+      newSelected.add(cardId);
+    } else {
+      newSelected.delete(cardId);
+    }
+    setSelectedCards(newSelected);
+  };
+
+  const handleCardDelete = async (cardId: string) => {
+    try {
+      await authenticatedFetch(`/api/cards/${cardId}`, {
+        method: 'DELETE',
+      });
+
+      const newCards = cards.filter(card => card.id !== cardId);
+      setCards(newCards);
+      setFilteredCards(newCards);
+      setSelectedCards(prev => {
+        const newSelected = new Set(prev);
+        newSelected.delete(cardId);
+        return newSelected;
+      });
+
+      showToast('Card deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting card:', error);
+      showToast('Failed to delete card', 'error');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedCards.size === 0) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedCards.size} card${selectedCards.size > 1 ? 's' : ''}? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+
+    try {
+      // Delete cards one by one (could be optimized with a bulk delete endpoint)
+      const deletePromises = Array.from(selectedCards).map(cardId =>
+        authenticatedFetch(`/api/cards/${cardId}`, {
+          method: 'DELETE',
+        })
+      );
+
+      await Promise.all(deletePromises);
+
+      const newCards = cards.filter(card => !selectedCards.has(card.id));
+      setCards(newCards);
+      setFilteredCards(newCards);
+      setSelectedCards(new Set());
+      setIsSelectionMode(false);
+
+      showToast(
+        `Successfully deleted ${selectedCards.size} card${selectedCards.size > 1 ? 's' : ''}`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Error bulk deleting cards:', error);
+      showToast('Failed to delete some cards', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleStartStudy = () => {
-    if (cards.length === 0) {
+    if (filteredCards.length === 0) {
       showToast(
         'No cards available to study. Generate some cards first!',
         'error'
@@ -145,6 +225,13 @@ export default function DeckDetailPage() {
 
   const handleStudyExit = () => {
     setIsStudying(false);
+  };
+
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    if (isSelectionMode) {
+      setSelectedCards(new Set());
+    }
   };
 
   if (loading || isLoading) {
@@ -168,7 +255,7 @@ export default function DeckDetailPage() {
         <Header />
         <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
           <QuizSession
-            cards={cards}
+            cards={filteredCards}
             onComplete={handleStudyComplete}
             onExit={handleStudyExit}
           />
@@ -189,7 +276,9 @@ export default function DeckDetailPage() {
               <p className='mt-2 text-gray-600'>{deck.description}</p>
             )}
             <div className='flex items-center mt-2 space-x-4 text-sm text-gray-500'>
-              <span>{cards.length} cards</span>
+              <span>
+                {filteredCards.length} of {cards.length} cards
+              </span>
               {deck.tags && deck.tags.length > 0 && (
                 <div className='flex space-x-1'>
                   {deck.tags.map((tag, index) => (
@@ -207,6 +296,19 @@ export default function DeckDetailPage() {
           <div className='flex space-x-3'>
             <Button
               variant='outline'
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </Button>
+            <Button
+              variant='outline'
+              onClick={toggleSelectionMode}
+              className={isSelectionMode ? 'bg-blue-50 border-blue-300' : ''}
+            >
+              {isSelectionMode ? 'Exit Selection' : 'Select Cards'}
+            </Button>
+            <Button
+              variant='outline'
               onClick={() => setIsGenerateModalOpen(true)}
               disabled={isGenerating}
             >
@@ -218,26 +320,92 @@ export default function DeckDetailPage() {
           </div>
         </div>
 
-        {cards.length === 0 ? (
+        {/* Selection Mode Actions */}
+        {isSelectionMode && (
+          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center space-x-4'>
+                <span className='text-sm font-medium text-blue-900'>
+                  {selectedCards.size} card{selectedCards.size !== 1 ? 's' : ''}{' '}
+                  selected
+                </span>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() =>
+                    setSelectedCards(
+                      new Set(filteredCards.map(card => card.id))
+                    )
+                  }
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setSelectedCards(new Set())}
+                >
+                  Clear Selection
+                </Button>
+              </div>
+              <Button
+                variant='danger'
+                size='sm'
+                onClick={handleBulkDelete}
+                loading={isDeleting}
+                disabled={selectedCards.size === 0}
+              >
+                Delete Selected ({selectedCards.size})
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Filters */}
+        {showFilters && (
+          <div className='bg-white border border-gray-200 rounded-lg p-6 mb-6'>
+            <CardFilter cards={cards} onFilterChange={setFilteredCards} />
+          </div>
+        )}
+
+        {filteredCards.length === 0 ? (
           <div className='text-center py-12'>
             <div className='text-6xl mb-4'>📝</div>
             <h3 className='text-lg font-medium text-gray-900 mb-2'>
-              No cards in this deck yet
+              {cards.length === 0
+                ? 'No cards in this deck yet'
+                : 'No cards match your filters'}
             </h3>
             <p className='text-gray-500 mb-6'>
-              Generate AI-powered flashcards to start learning
+              {cards.length === 0
+                ? 'Generate AI-powered flashcards to start learning'
+                : 'Try adjusting your filters or clear them to see all cards'}
             </p>
-            <Button
-              onClick={() => setIsGenerateModalOpen(true)}
-              disabled={isGenerating}
-            >
-              Generate Your First Cards
-            </Button>
+            {cards.length === 0 && (
+              <Button
+                onClick={() => setIsGenerateModalOpen(true)}
+                disabled={isGenerating}
+              >
+                Generate Your First Cards
+              </Button>
+            )}
+            {cards.length > 0 && (
+              <Button variant='outline' onClick={() => setShowFilters(false)}>
+                Clear Filters
+              </Button>
+            )}
           </div>
         ) : (
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {cards.map(card => (
-              <FlashCard key={card.id} card={card} />
+            {filteredCards.map(card => (
+              <FlashCard
+                key={card.id}
+                card={card}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedCards.has(card.id)}
+                onSelect={handleCardSelect}
+                onDelete={handleCardDelete}
+              />
             ))}
           </div>
         )}

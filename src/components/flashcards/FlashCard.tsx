@@ -38,9 +38,9 @@ export function FlashCard({
     setIsFlipped(false);
   };
 
-  const handleSelect = (e: React.MouseEvent) => {
+  const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
-    onSelect?.(card.id, !isSelected);
+    onSelect?.(card.id, e.target.checked);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -163,19 +163,29 @@ export function FlashCard({
         </span>
 
         {card.tags && card.tags.length > 0 && (
-          <div className='flex space-x-1'>
-            {card.tags.slice(0, 2).map((tag, index) => (
-              <span
-                key={index}
-                className='px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs'
-              >
-                {tag}
-              </span>
-            ))}
+          <div className='flex items-center space-x-1 max-w-[60%]'>
+            <div className='flex flex-wrap gap-1 max-w-full'>
+              {card.tags.slice(0, 2).map((tag, index) => (
+                <span
+                  key={index}
+                  className='px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs whitespace-nowrap'
+                  title={tag}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
             {card.tags.length > 2 && (
-              <span className='px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs'>
-                +{card.tags.length - 2}
-              </span>
+              <div className='relative group'>
+                <span className='px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs cursor-help'>
+                  +{card.tags.length - 2}
+                </span>
+                {/* Tooltip for additional tags */}
+                <div className='absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20'>
+                  {card.tags.slice(2).join(', ')}
+                  <div className='absolute top-full right-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900'></div>
+                </div>
+              </div>
             )}
           </div>
         )}
