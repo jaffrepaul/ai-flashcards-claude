@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { FlashCard } from '@/components/flashcards/FlashCard';
 import { QuizSession } from '@/components/flashcards/QuizSession';
 import { Deck, Card } from '@/types/database';
+import { authenticatedFetch } from '@/lib/api-utils';
 
 export default function DeckDetailPage() {
   const params = useParams();
@@ -32,15 +33,9 @@ export default function DeckDetailPage() {
 
   const fetchDeckAndCards = useCallback(async () => {
     try {
-      const response = await fetch(`/api/decks/${deckId}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setDeck(data.deck);
-        setCards(data.deck.cards || []);
-      } else {
-        router.push('/dashboard');
-      }
+      const data = await authenticatedFetch(`/api/decks/${deckId}`);
+      setDeck(data.deck);
+      setCards(data.deck.cards || []);
     } catch (error) {
       console.error('Error fetching deck:', error);
       router.push('/dashboard');
@@ -69,11 +64,8 @@ export default function DeckDetailPage() {
     setIsGenerating(true);
 
     try {
-      const response = await fetch('/api/flashcards/generate', {
+      const data = await authenticatedFetch('/api/flashcards/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           topic: generateForm.topic,
           content: generateForm.content,
@@ -83,20 +75,14 @@ export default function DeckDetailPage() {
         }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setCards([...cards, ...data.cards]);
-        setIsGenerateModalOpen(false);
-        setGenerateForm({
-          topic: '',
-          content: '',
-          difficulty: 'medium',
-          cardCount: 10,
-        });
-      } else {
-        alert('Failed to generate cards: ' + data.error);
-      }
+      setCards([...cards, ...data.cards]);
+      setIsGenerateModalOpen(false);
+      setGenerateForm({
+        topic: '',
+        content: '',
+        difficulty: 'medium',
+        cardCount: 10,
+      });
     } catch (error) {
       console.error('Error generating cards:', error);
       alert('Failed to generate cards');

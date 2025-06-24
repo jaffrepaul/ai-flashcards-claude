@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-admin';
+import { withAuth, requireAuth } from '@/lib/auth-middleware';
 import {
   handleApiError,
   createErrorResponse,
@@ -15,7 +16,22 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('deckId is required', 400);
     }
 
-    const { data: cards, error } = await supabase
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
+
+    // Verify deck ownership
+    const { data: deck, error: deckError } = await supabaseServer
+      .from('decks')
+      .select('user_id')
+      .eq('id', deckId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (deckError || !deck) {
+      return createErrorResponse('Deck not found', 404);
+    }
+
+    const { data: cards, error } = await supabaseServer
       .from('cards')
       .select('*')
       .eq('deck_id', deckId)
@@ -28,6 +44,9 @@ export async function GET(request: NextRequest) {
 
     return createSuccessResponse({ cards });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401);
+    }
     return handleApiError(error, 'GET /api/cards');
   }
 }
@@ -44,18 +63,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify deck exists and user has access
-    const { data: deck, error: deckError } = await supabase
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
+
+    // Verify deck ownership
+    const { data: deck, error: deckError } = await supabaseServer
       .from('decks')
-      .select('id')
+      .select('user_id')
       .eq('id', deckId)
+      .eq('user_id', user.id)
       .single();
 
     if (deckError || !deck) {
       return createErrorResponse('Deck not found', 404);
     }
 
-    const { data: card, error } = await supabase
+    const { data: card, error } = await supabaseServer
       .from('cards')
       .insert({
         deck_id: deckId,
@@ -74,6 +97,9 @@ export async function POST(request: NextRequest) {
 
     return createSuccessResponse({ card }, 201);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401);
+    }
     return handleApiError(error, 'POST /api/cards');
   }
 }

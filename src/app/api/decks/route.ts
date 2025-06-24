@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
-import { createSupabaseServerClient } from '@/lib/server-utils';
+import { supabaseServer } from '@/lib/supabase-admin';
+import { withAuth, requireAuth } from '@/lib/auth-middleware';
 import {
   handleApiError,
   createErrorResponse,
@@ -11,10 +11,12 @@ import * as Sentry from '@sentry/nextjs';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const isPublic = searchParams.get('public') === 'true';
 
-    let query = supabase
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
+
+    let query = supabaseServer
       .from('decks')
       .select(
         `
@@ -26,8 +28,9 @@ export async function GET(request: NextRequest) {
 
     if (isPublic) {
       query = query.eq('is_public', true);
-    } else if (userId) {
-      query = query.eq('user_id', userId);
+    } else {
+      // Default to user's own decks
+      query = query.eq('user_id', user.id);
     }
 
     const { data: decks, error } = await query;
@@ -46,58 +49,17 @@ export async function GET(request: NextRequest) {
 
     return createSuccessResponse({ decks: transformedDecks });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401);
+    }
     return handleApiError(error, 'GET /api/decks');
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const supabaseServer = createSupabaseServerClient(request);
-
-    // Debug: Log the authorization header
-    const authHeader = request.headers.get('authorization');
-    console.log('Authorization header:', authHeader ? 'Present' : 'Missing');
-
-    // Try to get the current user by making a simple query that requires authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseServer.auth.getUser();
-
-    console.log('Auth result:', { user: !!user, authError });
-
-    if (authError || !user) {
-      // If direct auth fails, try a different approach - check if we can access user data
-      console.log('Direct auth failed, trying alternative approach...');
-
-      // Try to get the user ID from the profiles table (this will work if RLS allows it)
-      const { data: profile, error: profileError } = await supabaseServer
-        .from('profiles')
-        .select('id')
-        .limit(1);
-
-      console.log('Profile check result:', { profile, profileError });
-
-      if (profileError || !profile || profile.length === 0) {
-        Sentry.captureException(new Error('User not authenticated'), {
-          tags: {
-            component: 'api/decks',
-            operation: 'create_deck',
-            type: 'authentication_error',
-          },
-          extra: {
-            authError,
-            profileError,
-            hasUser: !!user,
-            authHeaderPresent: !!authHeader,
-          },
-        });
-        return createErrorResponse('Authentication required', 401);
-      }
-
-      // If we can access profile data, we're authenticated
-      console.log('Authentication successful via profile check');
-    }
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
 
     const { title, description, tags, isPublic } = await request.json();
 
@@ -111,20 +73,10 @@ export async function POST(request: NextRequest) {
         },
         extra: {
           requestBody: { title, description, tags, isPublic },
-          userId: user?.id,
+          userId: user.id,
         },
       });
       return createErrorResponse('Missing required field: title', 400);
-    }
-
-    // Use the user ID from the auth result, or get it from the profile if auth.getUser() failed
-    const userId =
-      user?.id ||
-      (await supabaseServer.from('profiles').select('id').limit(1).single())
-        ?.data?.id;
-
-    if (!userId) {
-      return createErrorResponse('Could not determine user ID', 401);
     }
 
     const { data: deck, error } = await supabaseServer
@@ -134,7 +86,7 @@ export async function POST(request: NextRequest) {
         description,
         tags: tags || [],
         is_public: isPublic || false,
-        user_id: userId,
+        user_id: user.id,
       })
       .select()
       .single();
@@ -154,7 +106,7 @@ export async function POST(request: NextRequest) {
         extra: {
           supabaseError: error,
           requestBody: { title, description, tags, isPublic },
-          userId,
+          userId: user.id,
         },
       });
 
@@ -163,6 +115,10 @@ export async function POST(request: NextRequest) {
 
     return createSuccessResponse({ deck }, 201);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401);
+    }
+
     const sentryError =
       error instanceof Error ? error : new Error(String(error));
     sentryError.name = 'DeckCreationUnexpectedError';

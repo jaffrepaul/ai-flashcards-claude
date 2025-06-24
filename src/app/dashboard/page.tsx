@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { DeckCard } from '@/components/flashcards/DeckCard';
 import { CreateDeckModal } from '@/components/flashcards/CreateDeckModal';
 import { Deck } from '@/types/database';
+import { authenticatedFetch } from '@/lib/api-utils';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -18,17 +19,14 @@ export default function DashboardPage() {
 
   const fetchDecks = useCallback(async () => {
     try {
-      const response = await fetch(`/api/decks?userId=${user?.id}`);
-      const data = await response.json();
-      if (response.ok) {
-        setDecks(data.decks || []);
-      }
+      const data = await authenticatedFetch('/api/decks');
+      setDecks(data.decks || []);
     } catch (error) {
       console.error('Error fetching decks:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {

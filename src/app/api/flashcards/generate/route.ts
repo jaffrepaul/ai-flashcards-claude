@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-admin';
+import { withAuth, requireAuth } from '@/lib/auth-middleware';
 
 const FlashcardSchema = z.object({
   cards: z.array(
@@ -32,11 +33,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
+
     // Verify deck ownership
-    const { data: deck, error: deckError } = await supabase
+    const { data: deck, error: deckError } = await supabaseServer
       .from('decks')
       .select('user_id')
       .eq('id', deckId)
+      .eq('user_id', user.id)
       .single();
 
     if (deckError || !deck) {
@@ -71,7 +76,7 @@ Make the questions engaging and educational.`;
       tags: card.tags || [],
     }));
 
-    const { data: insertedCards, error: insertError } = await supabase
+    const { data: insertedCards, error: insertError } = await supabaseServer
       .from('cards')
       .insert(cardsToInsert)
       .select();
@@ -90,6 +95,12 @@ Make the questions engaging and educational.`;
       count: insertedCards.length,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
     console.error('Error generating flashcards:', error);
     return NextResponse.json(
       { error: 'Failed to generate flashcards' },

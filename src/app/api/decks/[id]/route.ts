@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-admin';
+import {
+  withAuth,
+  requireAuth,
+  AuthenticatedRequest,
+} from '@/lib/auth-middleware';
 import {
   handleApiError,
   createErrorResponse,
@@ -12,7 +17,10 @@ export async function GET(
 ) {
   try {
     const params = await context.params;
-    const { data: deck, error } = await supabase
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
+
+    const { data: deck, error } = await supabaseServer
       .from('decks')
       .select(
         `
@@ -21,6 +29,7 @@ export async function GET(
       `
       )
       .eq('id', params.id)
+      .eq('user_id', user.id) // Manual filtering instead of RLS
       .single();
 
     if (error || !deck) {
@@ -35,6 +44,9 @@ export async function GET(
 
     return createSuccessResponse({ deck: deckWithCount });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401);
+    }
     return handleApiError(error, 'GET /api/decks/[id]');
   }
 }
@@ -45,28 +57,27 @@ export async function PUT(
 ) {
   try {
     const params = await context.params;
-    const { title, description, tags, isPublic, userId } = await request.json();
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
+    const { title, description, tags, isPublic } = await request.json();
 
     if (!title) {
       return createErrorResponse('Title is required', 400);
     }
 
     // Verify ownership
-    const { data: existingDeck, error: fetchError } = await supabase
+    const { data: existingDeck, error: fetchError } = await supabaseServer
       .from('decks')
       .select('user_id')
       .eq('id', params.id)
+      .eq('user_id', user.id)
       .single();
 
     if (fetchError || !existingDeck) {
       return createErrorResponse('Deck not found', 404);
     }
 
-    if (existingDeck.user_id !== userId) {
-      return createErrorResponse('Unauthorized', 403);
-    }
-
-    const { data: deck, error } = await supabase
+    const { data: deck, error } = await supabaseServer
       .from('decks')
       .update({
         title,
@@ -75,6 +86,7 @@ export async function PUT(
         is_public: isPublic || false,
       })
       .eq('id', params.id)
+      .eq('user_id', user.id)
       .select()
       .single();
 
@@ -85,6 +97,9 @@ export async function PUT(
 
     return createSuccessResponse({ deck });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401);
+    }
     return handleApiError(error, 'PUT /api/decks/[id]');
   }
 }
@@ -95,29 +110,26 @@ export async function DELETE(
 ) {
   try {
     const params = await context.params;
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return createErrorResponse('userId is required', 400);
-    }
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
 
     // Verify ownership
-    const { data: existingDeck, error: fetchError } = await supabase
+    const { data: existingDeck, error: fetchError } = await supabaseServer
       .from('decks')
       .select('user_id')
       .eq('id', params.id)
+      .eq('user_id', user.id)
       .single();
 
     if (fetchError || !existingDeck) {
-      return NextResponse.json({ error: 'Deck not found' }, { status: 404 });
+      return createErrorResponse('Deck not found', 404);
     }
 
-    if (existingDeck.user_id !== userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
-    const { error } = await supabase.from('decks').delete().eq('id', params.id);
+    const { error } = await supabaseServer
+      .from('decks')
+      .delete()
+      .eq('id', params.id)
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('Error deleting deck:', error);
@@ -126,6 +138,9 @@ export async function DELETE(
 
     return createSuccessResponse({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401);
+    }
     return handleApiError(error, 'DELETE /api/decks/[id]');
   }
 }
