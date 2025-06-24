@@ -1,11 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-admin';
 import { withAuth, requireAuth } from '@/lib/auth-middleware';
-import {
-  handleApiError,
-  createErrorResponse,
-  createSuccessResponse,
-} from '@/lib/api-utils';
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-utils';
 
 export async function DELETE(
   request: NextRequest,
@@ -50,6 +46,7 @@ export async function DELETE(
     if (error instanceof Error && error.message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401);
     }
-    return handleApiError(error, 'DELETE /api/cards/[id]');
+    console.error('Error in DELETE /api/cards/[id]:', error);
+    return createErrorResponse('Internal server error', 500);
   }
 }

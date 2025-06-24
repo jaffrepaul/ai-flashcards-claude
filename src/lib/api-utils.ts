@@ -1,39 +1,12 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export function handleApiError(
-  error: unknown,
-  operation: string
-): NextResponse {
-  console.error(`Error in ${operation}:`, error);
-  const message =
-    error instanceof Error ? error.message : 'An unexpected error occurred';
-  return NextResponse.json({ error: message }, { status: 500 });
-}
-
-export function createErrorResponse(
-  message: string,
-  status: number = 500
-): NextResponse {
+export function createErrorResponse(message: string, status: number = 500) {
   return NextResponse.json({ error: message }, { status });
 }
 
-export function createSuccessResponse(
-  data: any,
-  status: number = 200
-): NextResponse {
+export function createSuccessResponse(data: any, status: number = 200) {
   return NextResponse.json(data, { status });
-}
-
-export async function withErrorHandling<T>(
-  operation: () => Promise<T>,
-  operationName: string
-): Promise<T | NextResponse> {
-  try {
-    return await operation();
-  } catch (error) {
-    return handleApiError(error, operationName);
-  }
 }
 
 // Helper function for making authenticated API calls from client

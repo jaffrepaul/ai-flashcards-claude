@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { supabaseServer } from '@/lib/supabase-admin';
 import { withAuth, requireAuth } from '@/lib/auth-middleware';
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-utils';
 
 const FlashcardSchema = z.object({
   cards: z.array(
@@ -23,37 +24,22 @@ const FlashcardSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Check environment variables
     if (!process.env.OPENAI_API_KEY) {
-      console.error('Missing OPENAI_API_KEY environment variable');
-      return NextResponse.json(
-        { error: 'OpenAI API key not configured' },
-        { status: 500 }
-      );
+      return createErrorResponse('OpenAI API key not configured', 500);
     }
 
     const { topic, content, difficulty, cardCount, deckId } =
       await request.json();
 
-    console.log('Generate cards request:', {
-      topic,
-      content,
-      difficulty,
-      cardCount,
-      deckId,
-    });
-
     if (!topic || !cardCount || !deckId) {
-      return NextResponse.json(
-        { error: 'Missing required fields: topic, cardCount, deckId' },
-        { status: 400 }
+      return createErrorResponse(
+        'Missing required fields: topic, cardCount, deckId',
+        400
       );
     }
 
     const authenticatedRequest = await withAuth(request);
     const user = requireAuth(authenticatedRequest);
-
-    console.log('User authenticated:', user.id);
 
     // Verify deck ownership
     const { data: deck, error: deckError } = await supabaseServer
@@ -64,15 +50,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (deckError || !deck) {
-      console.error('Deck not found or access denied:', {
-        deckError,
-        deckId,
-        userId: user.id,
-      });
-      return NextResponse.json({ error: 'Deck not found' }, { status: 404 });
+      return createErrorResponse('Deck not found', 404);
     }
-
-    console.log('Deck verified, generating cards...');
 
     const prompt = `Generate ${cardCount} flashcards about "${topic}".
 ${content ? `Additional context: ${content}` : ''}
@@ -87,18 +66,11 @@ Create high-quality flashcards that:
 
 Make the questions engaging and educational.`;
 
-    console.log('Calling OpenAI API...');
-
     const { object } = await generateObject({
       model: openai('gpt-4'),
       schema: FlashcardSchema,
       prompt,
     });
-
-    console.log(
-      'OpenAI response received, cards generated:',
-      object.cards.length
-    );
 
     // Insert cards into database
     const cardsToInsert = object.cards.map(card => ({
@@ -109,8 +81,6 @@ Make the questions engaging and educational.`;
       tags: card.tags || [],
     }));
 
-    console.log('Inserting cards into database...');
-
     const { data: insertedCards, error: insertError } = await supabaseServer
       .from('cards')
       .insert(cardsToInsert)
@@ -118,42 +88,20 @@ Make the questions engaging and educational.`;
 
     if (insertError) {
       console.error('Error inserting cards:', insertError);
-      return NextResponse.json(
-        {
-          error: 'Failed to save generated cards',
-          details: insertError.message,
-        },
-        { status: 500 }
-      );
+      return createErrorResponse('Failed to save generated cards', 500);
     }
 
-    console.log('Cards inserted successfully:', insertedCards.length);
-
-    return NextResponse.json({
+    return createSuccessResponse({
       success: true,
       cards: insertedCards,
       count: insertedCards.length,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Authentication required') {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return createErrorResponse('Authentication required', 401);
     }
 
     console.error('Error generating flashcards:', error);
-    console.error(
-      'Error stack:',
-      error instanceof Error ? error.stack : 'No stack trace'
-    );
-
-    return NextResponse.json(
-      {
-        error: 'Failed to generate flashcards',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+    return createErrorResponse('Failed to generate flashcards', 500);
   }
 }

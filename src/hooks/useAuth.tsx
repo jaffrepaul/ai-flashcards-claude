@@ -7,17 +7,16 @@ import { supabase } from '@/lib/supabase';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  error: string | null;
   signUp: (
     email: string,
     password: string,
     fullName?: string
-  ) => Promise<{ data: any; error: string | null }>;
+  ) => Promise<{ error: string | null }>;
   signIn: (
     email: string,
     password: string
-  ) => Promise<{ data: any; error: string | null }>;
-  signInWithGoogle: () => Promise<{ data: any; error: string | null }>;
+  ) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<{ error: string | null }>;
 }
 
@@ -26,7 +25,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -39,7 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        setError('Failed to initialize authentication');
       } finally {
         setLoading(false);
       }
@@ -55,7 +52,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
       }
-      setError(null);
     });
 
     return () => {
@@ -64,93 +60,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    setLoading(true);
-    setError(null);
-
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            full_name: fullName,
-          },
+          data: { full_name: fullName },
         },
       });
-
-      if (error) throw error;
-      return { data, error: null };
+      return { error: error?.message || null };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'An error occurred';
-      setError(errorMessage);
-      return { data: null, error: errorMessage };
-    } finally {
-      setLoading(false);
+      return {
+        error: error instanceof Error ? error.message : 'An error occurred',
+      };
     }
   };
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true);
-    setError(null);
-
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      if (error) throw error;
-      return { data, error: null };
+      return { error: error?.message || null };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'An error occurred';
-      setError(errorMessage);
-      return { data: null, error: errorMessage };
-    } finally {
-      setLoading(false);
+      return {
+        error: error instanceof Error ? error.message : 'An error occurred',
+      };
     }
   };
 
   const signInWithGoogle = async () => {
-    setLoading(true);
-    setError(null);
-
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-
-      if (error) throw error;
-      return { data, error: null };
+      return { error: error?.message || null };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'An error occurred';
-      setError(errorMessage);
-      return { data: null, error: errorMessage };
-    } finally {
-      setLoading(false);
+      return {
+        error: error instanceof Error ? error.message : 'An error occurred',
+      };
     }
   };
 
   const signOut = async () => {
-    setLoading(true);
-    setError(null);
-
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      return { error: null };
+      return { error: error?.message || null };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'An error occurred';
-      setError(errorMessage);
-      return { error: errorMessage };
-    } finally {
-      setLoading(false);
+      return {
+        error: error instanceof Error ? error.message : 'An error occurred',
+      };
     }
   };
 
@@ -159,7 +122,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         loading,
-        error,
         signUp,
         signIn,
         signInWithGoogle,

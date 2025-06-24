@@ -1,11 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-admin';
 import { withAuth, requireAuth } from '@/lib/auth-middleware';
-import {
-  handleApiError,
-  createErrorResponse,
-  createSuccessResponse,
-} from '@/lib/api-utils';
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +9,7 @@ export async function GET(request: NextRequest) {
     const deckId = searchParams.get('deckId');
 
     if (!deckId) {
-      return createErrorResponse('deckId is required', 400);
+      return createErrorResponse('Missing deckId parameter', 400);
     }
 
     const authenticatedRequest = await withAuth(request);
@@ -47,24 +43,22 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401);
     }
-    return handleApiError(error, 'GET /api/cards');
+    console.error('Error in GET /api/cards:', error);
+    return createErrorResponse('Internal server error', 500);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
+
     const { deckId, frontContent, backContent, difficulty, tags } =
       await request.json();
 
     if (!deckId || !frontContent || !backContent) {
-      return createErrorResponse(
-        'Missing required fields: deckId, frontContent, backContent',
-        400
-      );
+      return createErrorResponse('Missing required fields', 400);
     }
-
-    const authenticatedRequest = await withAuth(request);
-    const user = requireAuth(authenticatedRequest);
 
     // Verify deck ownership
     const { data: deck, error: deckError } = await supabaseServer
@@ -100,6 +94,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401);
     }
-    return handleApiError(error, 'POST /api/cards');
+    console.error('Error in POST /api/cards:', error);
+    return createErrorResponse('Internal server error', 500);
   }
 }

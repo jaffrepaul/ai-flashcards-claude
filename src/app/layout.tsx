@@ -1,7 +1,6 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/hooks/useAuth';
-import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider';
 import { metadata } from './metadata';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -19,9 +18,7 @@ export default function RootLayout({
         <link rel='icon' href='/favicon.svg' type='image/svg+xml' />
       </head>
       <body className={inter.className}>
-        <ReactQueryProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </ReactQueryProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

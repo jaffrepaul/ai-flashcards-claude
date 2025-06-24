@@ -1,15 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-admin';
-import {
-  withAuth,
-  requireAuth,
-  AuthenticatedRequest,
-} from '@/lib/auth-middleware';
-import {
-  handleApiError,
-  createErrorResponse,
-  createSuccessResponse,
-} from '@/lib/api-utils';
+import { withAuth, requireAuth } from '@/lib/auth-middleware';
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-utils';
 
 export async function GET(
   request: NextRequest,
@@ -22,14 +14,9 @@ export async function GET(
 
     const { data: deck, error } = await supabaseServer
       .from('decks')
-      .select(
-        `
-        *,
-        cards(*)
-      `
-      )
+      .select('*, cards(*)')
       .eq('id', params.id)
-      .eq('user_id', user.id) // Manual filtering instead of RLS
+      .eq('user_id', user.id)
       .single();
 
     if (error || !deck) {
@@ -47,7 +34,8 @@ export async function GET(
     if (error instanceof Error && error.message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401);
     }
-    return handleApiError(error, 'GET /api/decks/[id]');
+    console.error('Error in GET /api/decks/[id]:', error);
+    return createErrorResponse('Internal server error', 500);
   }
 }
 
@@ -100,7 +88,8 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401);
     }
-    return handleApiError(error, 'PUT /api/decks/[id]');
+    console.error('Error in PUT /api/decks/[id]:', error);
+    return createErrorResponse('Internal server error', 500);
   }
 }
 
@@ -141,6 +130,7 @@ export async function DELETE(
     if (error instanceof Error && error.message === 'Authentication required') {
       return createErrorResponse('Authentication required', 401);
     }
-    return handleApiError(error, 'DELETE /api/decks/[id]');
+    console.error('Error in DELETE /api/decks/[id]:', error);
+    return createErrorResponse('Internal server error', 500);
   }
 }

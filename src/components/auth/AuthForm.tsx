@@ -13,20 +13,26 @@ export function AuthForm({ mode, onToggleMode, serverError }: AuthFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const { signIn, signUp, signInWithGoogle, loading, error } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const { signIn, signUp, signInWithGoogle, loading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (mode === 'signin') {
-      await signIn(email, password);
+      const { error: signInError } = await signIn(email, password);
+      if (signInError) setError(signInError);
     } else {
-      await signUp(email, password, fullName);
+      const { error: signUpError } = await signUp(email, password, fullName);
+      if (signUpError) setError(signUpError);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    await signInWithGoogle();
+    setError(null);
+    const { error: googleError } = await signInWithGoogle();
+    if (googleError) setError(googleError);
   };
 
   return (

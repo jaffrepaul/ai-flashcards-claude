@@ -1,14 +1,12 @@
 import { NextRequest } from 'next/server';
+import { User } from '@supabase/supabase-js';
 import { supabaseServer } from '@/lib/supabase-admin';
 
 export interface AuthenticatedRequest extends NextRequest {
-  user?: {
-    id: string;
-    email: string;
-  };
+  user?: User;
 }
 
-export async function getAuthenticatedUser(request: NextRequest) {
+export async function getAuthUser(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return null;
@@ -24,16 +22,13 @@ export async function getAuthenticatedUser(request: NextRequest) {
     return null;
   }
 
-  return {
-    id: user.id,
-    email: user.email || '',
-  };
+  return user;
 }
 
 export async function withAuth(
   request: NextRequest
 ): Promise<AuthenticatedRequest> {
-  const user = await getAuthenticatedUser(request);
+  const user = await getAuthUser(request);
   const authenticatedRequest = request as AuthenticatedRequest;
   authenticatedRequest.user = user || undefined;
   return authenticatedRequest;

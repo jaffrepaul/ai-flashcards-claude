@@ -1,6 +1,63 @@
 # Authentication Middleware
 
-This project uses a simplified authentication middleware approach to avoid RLS (Row Level Security) issues with Supabase.
+This document explains the authentication middleware used in the AI Flashcards application.
+
+## Overview
+
+The authentication middleware provides a simple way to handle user authentication in API routes. It uses Supabase for authentication and provides helper functions to verify user identity.
+
+## Files
+
+- `src/lib/auth-middleware.ts` - Main middleware functions
+- `src/lib/api-utils.ts` - API utility functions
+
+## Usage
+
+### Basic Authentication
+
+```typescript
+import { withAuth, requireAuth } from '@/lib/auth-middleware';
+import { createErrorResponse, createSuccessResponse } from '@/lib/api-utils';
+
+export async function GET(request: NextRequest) {
+  try {
+    const authenticatedRequest = await withAuth(request);
+    const user = requireAuth(authenticatedRequest);
+
+    // User is now authenticated
+    return createSuccessResponse({ user: user.id });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return createErrorResponse('Authentication required', 401);
+    }
+    console.error('Error:', error);
+    return createErrorResponse('Internal server error', 500);
+  }
+}
+```
+
+### Functions
+
+- `withAuth(request)` - Adds user to request if authenticated
+- `requireAuth(request)` - Throws error if user not authenticated
+- `getAuthUser(request)` - Returns user object or null
+
+### Error Handling
+
+The middleware uses simple error responses:
+
+- `createErrorResponse(message, status)` - Creates error response
+- `createSuccessResponse(data, status)` - Creates success response
+
+## Client-Side Usage
+
+For client-side API calls, use the `authenticatedFetch` function:
+
+```typescript
+import { authenticatedFetch } from '@/lib/api-utils';
+
+const data = await authenticatedFetch('/api/decks');
+```
 
 ## How It Works
 
@@ -15,50 +72,6 @@ This project uses a simplified authentication middleware approach to avoid RLS (
 - Use `authenticatedFetch()` helper function
 - Automatically includes auth token in requests
 - Handles errors consistently
-
-## Usage
-
-### In API Routes
-
-```typescript
-import { withAuth, requireAuth } from '@/lib/auth-middleware';
-import { supabaseServer } from '@/lib/supabase-admin';
-
-export async function GET(request: NextRequest) {
-  try {
-    const authenticatedRequest = await withAuth(request);
-    const user = requireAuth(authenticatedRequest);
-
-    // Now you can use supabaseServer without RLS issues
-    const { data, error } = await supabaseServer
-      .from('decks')
-      .select('*')
-      .eq('user_id', user.id); // Manual filtering
-
-    // ... rest of your code
-  } catch (error) {
-    if (error instanceof Error && error.message === 'Authentication required') {
-      return createErrorResponse('Authentication required', 401);
-    }
-    return handleApiError(error, 'GET /api/decks');
-  }
-}
-```
-
-### In Client Components
-
-```typescript
-import { authenticatedFetch } from '@/lib/api-utils';
-
-// Simple authenticated API call
-const data = await authenticatedFetch('/api/decks');
-
-// With POST data
-const result = await authenticatedFetch('/api/decks', {
-  method: 'POST',
-  body: JSON.stringify({ title: 'My Deck' }),
-});
-```
 
 ## Benefits
 
