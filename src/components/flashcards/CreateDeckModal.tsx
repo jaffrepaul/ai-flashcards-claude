@@ -98,7 +98,7 @@ export function CreateDeckModal({
           level: 'error',
         });
 
-        alert(`Failed to create deck: ${errorMessage}`);
+        console.error('Failed to create deck:', errorMessage);
         return;
       }
 
@@ -131,9 +131,6 @@ export function CreateDeckModal({
       });
 
       console.error('Error creating deck:', error);
-      alert(
-        'Failed to create deck. Please check your connection and try again.'
-      );
     }
   };
 
