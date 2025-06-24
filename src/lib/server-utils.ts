@@ -27,9 +27,11 @@ export const createSupabaseServerClient = (request?: NextRequest) => {
         autoRefreshToken: false,
       },
       global: {
-        headers: accessToken ? {
-          Authorization: `Bearer ${accessToken}`,
-        } : {},
+        headers: accessToken
+          ? {
+              Authorization: `Bearer ${accessToken}`,
+            }
+          : {},
       },
     }
   );

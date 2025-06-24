@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform the data to include card count
-    const transformedDecks = decks?.map((deck) => ({
+    const transformedDecks = decks?.map(deck => ({
       ...deck,
       card_count: deck.cards?.[0]?.count || 0,
       cards: undefined, // Remove the nested cards object
@@ -59,22 +59,25 @@ export async function POST(request: NextRequest) {
     console.log('Authorization header:', authHeader ? 'Present' : 'Missing');
 
     // Try to get the current user by making a simple query that requires authentication
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseServer.auth.getUser();
+
     console.log('Auth result:', { user: !!user, authError });
 
     if (authError || !user) {
       // If direct auth fails, try a different approach - check if we can access user data
       console.log('Direct auth failed, trying alternative approach...');
-      
+
       // Try to get the user ID from the profiles table (this will work if RLS allows it)
       const { data: profile, error: profileError } = await supabaseServer
         .from('profiles')
         .select('id')
         .limit(1);
-      
+
       console.log('Profile check result:', { profile, profileError });
-      
+
       if (profileError || !profile || profile.length === 0) {
         Sentry.captureException(new Error('User not authenticated'), {
           tags: {
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
         });
         return createErrorResponse('Authentication required', 401);
       }
-      
+
       // If we can access profile data, we're authenticated
       console.log('Authentication successful via profile check');
     }
@@ -115,8 +118,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Use the user ID from the auth result, or get it from the profile if auth.getUser() failed
-    const userId = user?.id || (await supabaseServer.from('profiles').select('id').limit(1).single())?.data?.id;
-    
+    const userId =
+      user?.id ||
+      (await supabaseServer.from('profiles').select('id').limit(1).single())
+        ?.data?.id;
+
     if (!userId) {
       return createErrorResponse('Could not determine user ID', 401);
     }

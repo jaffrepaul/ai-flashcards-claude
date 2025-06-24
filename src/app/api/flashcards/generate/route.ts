@@ -63,7 +63,7 @@ Make the questions engaging and educational.`;
     });
 
     // Insert cards into database
-    const cardsToInsert = object.cards.map((card) => ({
+    const cardsToInsert = object.cards.map(card => ({
       deck_id: deckId,
       front_content: card.front,
       back_content: card.back,

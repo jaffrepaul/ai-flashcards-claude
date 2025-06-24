@@ -25,7 +25,7 @@ function TestComponent() {
         op: 'ui.click',
         name: 'Test Button Click',
       },
-      (span) => {
+      span => {
         const value = 'some config';
         const metric = 'some metric';
 
@@ -39,7 +39,7 @@ function TestComponent() {
   };
 
   return (
-    <button type="button" onClick={handleTestButtonClick}>
+    <button type='button' onClick={handleTestButtonClick}>
       Test Sentry
     </button>
   );

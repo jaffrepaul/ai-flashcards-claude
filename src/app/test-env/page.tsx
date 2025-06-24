@@ -1,6 +1,6 @@
 export default function TestEnv() {
   return (
-    <div className="p-4">
+    <div className='p-4'>
       <h1>Environment Variables Test</h1>
       <pre>
         {JSON.stringify(

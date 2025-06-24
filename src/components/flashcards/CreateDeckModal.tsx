@@ -39,13 +39,15 @@ export function CreateDeckModal({
 
     try {
       // Get the current session and access token
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
 
-      console.log('Client session:', { 
-        hasSession: !!session, 
+      console.log('Client session:', {
+        hasSession: !!session,
         hasAccessToken: !!accessToken,
-        userId: session?.user?.id 
+        userId: session?.user?.id,
       });
 
       const response = await fetch('/api/decks', {
@@ -59,7 +61,7 @@ export function CreateDeckModal({
           description: newDeck.description,
           tags: newDeck.tags
             .split(',')
-            .map((tag) => tag.trim())
+            .map(tag => tag.trim())
             .filter(Boolean),
           isPublic: newDeck.isPublic,
         }),
@@ -138,67 +140,67 @@ export function CreateDeckModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Create New Deck"
-      className="max-w-lg"
+      title='Create New Deck'
+      className='max-w-lg'
     >
-      <form onSubmit={handleCreateDeck} className="space-y-4">
+      <form onSubmit={handleCreateDeck} className='space-y-4'>
         <Input
-          label="Deck Title"
+          label='Deck Title'
           value={newDeck.title}
-          onChange={(e) => setNewDeck({ ...newDeck, title: e.target.value })}
-          placeholder="Enter a title for your deck"
+          onChange={e => setNewDeck({ ...newDeck, title: e.target.value })}
+          placeholder='Enter a title for your deck'
           required
         />
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className='block text-sm font-medium text-gray-700 mb-2'>
             Description (optional)
           </label>
           <textarea
             value={newDeck.description}
-            onChange={(e) =>
+            onChange={e =>
               setNewDeck({ ...newDeck, description: e.target.value })
             }
-            placeholder="Describe what this deck is about"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder='Describe what this deck is about'
+            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
             rows={3}
           />
         </div>
 
         <Input
-          label="Tags (optional)"
+          label='Tags (optional)'
           value={newDeck.tags}
-          onChange={(e) => setNewDeck({ ...newDeck, tags: e.target.value })}
-          placeholder="math, science, history (comma separated)"
+          onChange={e => setNewDeck({ ...newDeck, tags: e.target.value })}
+          placeholder='math, science, history (comma separated)'
         />
 
-        <div className="flex items-center">
+        <div className='flex items-center'>
           <input
-            type="checkbox"
-            id="isPublic"
+            type='checkbox'
+            id='isPublic'
             checked={newDeck.isPublic}
-            onChange={(e) =>
+            onChange={e =>
               setNewDeck({ ...newDeck, isPublic: e.target.checked })
             }
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
           />
-          <label htmlFor="isPublic" className="ml-2 text-sm text-gray-700">
+          <label htmlFor='isPublic' className='ml-2 text-sm text-gray-700'>
             Make this deck public (others can view and copy it)
           </label>
         </div>
 
-        <div className="flex justify-end space-x-3 pt-4">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <div className='flex justify-end space-x-3 pt-4'>
+          <Button type='button' variant='outline' onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">Create Deck</Button>
+          <Button type='submit'>Create Deck</Button>
         </div>
 
         {/* Test button for Sentry - remove in production */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className='mt-4 pt-4 border-t border-gray-200'>
           <Button
-            type="button"
-            variant="outline"
+            type='button'
+            variant='outline'
             onClick={() => {
               Sentry.captureException(
                 new Error('Test error from CreateDeckModal'),
@@ -216,7 +218,7 @@ export function CreateDeckModal({
               );
               alert('Test error sent to Sentry! Check your Sentry dashboard.');
             }}
-            className="text-xs"
+            className='text-xs'
           >
             Test Sentry Error
           </Button>

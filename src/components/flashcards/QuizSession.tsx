@@ -73,42 +73,42 @@ export function QuizSession({ cards, onComplete, onExit }: QuizSessionProps) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className='max-w-2xl mx-auto'>
       {/* Progress bar */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+      <div className='mb-6'>
+        <div className='flex items-center justify-between text-sm text-gray-600 mb-2'>
           <span>
             Card {currentCardIndex + 1} of {cards.length}
           </span>
           <span>{progress.toFixed(0)}% Complete</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className='w-full bg-gray-200 rounded-full h-2'>
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+            className='bg-blue-600 h-2 rounded-full transition-all duration-500'
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       {/* Current stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-600">
+      <div className='grid grid-cols-3 gap-4 mb-6'>
+        <div className='text-center'>
+          <div className='text-2xl font-bold text-green-600'>
             {results.correctAnswers}
           </div>
-          <div className="text-xs text-gray-600">Correct</div>
+          <div className='text-xs text-gray-600'>Correct</div>
         </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-red-600">
+        <div className='text-center'>
+          <div className='text-2xl font-bold text-red-600'>
             {results.incorrectAnswers}
           </div>
-          <div className="text-xs text-gray-600">Incorrect</div>
+          <div className='text-xs text-gray-600'>Incorrect</div>
         </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-gray-600">
+        <div className='text-center'>
+          <div className='text-2xl font-bold text-gray-600'>
             {currentCardIndex + 1}
           </div>
-          <div className="text-xs text-gray-600">Current</div>
+          <div className='text-xs text-gray-600'>Current</div>
         </div>
       </div>
 
@@ -117,12 +117,12 @@ export function QuizSession({ cards, onComplete, onExit }: QuizSessionProps) {
         card={currentCard}
         onAnswer={handleAnswer}
         showAnswerButtons={true}
-        className="mb-6"
+        className='mb-6'
       />
 
       {/* Exit button */}
-      <div className="text-center">
-        <Button variant="outline" onClick={onExit}>
+      <div className='text-center'>
+        <Button variant='outline' onClick={onExit}>
           Exit Quiz
         </Button>
       </div>
