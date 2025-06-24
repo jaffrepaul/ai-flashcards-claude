@@ -9,6 +9,10 @@ interface FlashCardProps {
   onAnswer?: (isCorrect: boolean) => void;
   showAnswerButtons?: boolean;
   className?: string;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onSelect?: (cardId: string, selected: boolean) => void;
+  onDelete?: (cardId: string) => void;
 }
 
 export function FlashCard({
@@ -16,16 +20,32 @@ export function FlashCard({
   onAnswer,
   showAnswerButtons = false,
   className,
+  isSelectionMode = false,
+  isSelected = false,
+  onSelect,
+  onDelete,
 }: FlashCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   const handleFlip = () => {
-    setIsFlipped(!isFlipped);
+    if (!isSelectionMode) {
+      setIsFlipped(!isFlipped);
+    }
   };
 
   const handleAnswer = (isCorrect: boolean) => {
     onAnswer?.(isCorrect);
     setIsFlipped(false);
+  };
+
+  const handleSelect = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSelect?.(card.id, !isSelected);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete?.(card.id);
   };
 
   const difficultyColors = {
@@ -35,11 +55,40 @@ export function FlashCard({
   };
 
   return (
-    <div className={cn('w-full max-w-md mx-auto', className)}>
-      <div className='relative perspective-1000'>
+    <div className={cn('w-full max-w-md mx-auto relative', className)}>
+      {/* Selection checkbox */}
+      {isSelectionMode && (
+        <div className='absolute top-2 left-2 z-10'>
+          <input
+            type='checkbox'
+            checked={isSelected}
+            onChange={handleSelect}
+            className='w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2'
+          />
+        </div>
+      )}
+
+      {/* Delete button */}
+      {isSelectionMode && (
+        <button
+          onClick={handleDelete}
+          className='absolute top-2 right-2 z-10 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors'
+          title='Delete card'
+        >
+          ×
+        </button>
+      )}
+
+      <div
+        className={cn(
+          'relative perspective-1000',
+          isSelectionMode && 'cursor-default'
+        )}
+      >
         <div
           className={cn(
-            'relative w-full h-64 transition-transform duration-700 transform-style-preserve-3d cursor-pointer',
+            'relative w-full h-64 transition-transform duration-700 transform-style-preserve-3d',
+            !isSelectionMode && 'cursor-pointer',
             isFlipped && 'rotate-y-180'
           )}
           onClick={handleFlip}
@@ -49,7 +98,8 @@ export function FlashCard({
             className={cn(
               'absolute inset-0 backface-hidden rounded-lg border-2 p-6 flex items-center justify-center text-center shadow-lg',
               difficultyColors[card.difficulty],
-              'bg-white border-gray-200'
+              'bg-white border-gray-200',
+              isSelectionMode && isSelected && 'ring-2 ring-blue-500'
             )}
           >
             <div>
@@ -57,7 +107,7 @@ export function FlashCard({
                 {card.front_content}
               </div>
               <div className='text-sm text-gray-500'>
-                Click to reveal answer
+                {isSelectionMode ? 'Selection mode' : 'Click to reveal answer'}
               </div>
             </div>
           </div>
@@ -66,7 +116,8 @@ export function FlashCard({
           <div
             className={cn(
               'absolute inset-0 backface-hidden rotate-y-180 rounded-lg border-2 p-6 flex flex-col items-center justify-center text-center shadow-lg',
-              difficultyColors[card.difficulty]
+              difficultyColors[card.difficulty],
+              isSelectionMode && isSelected && 'ring-2 ring-blue-500'
             )}
           >
             <div className='flex-1 flex items-center justify-center'>

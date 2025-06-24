@@ -28,6 +28,7 @@ export default function DeckDetailPage() {
     cardCount: 10,
   });
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<string>('');
 
   const deckId = params.id as string;
 
@@ -56,14 +57,38 @@ export default function DeckDetailPage() {
     }
   }, [deckId, user, fetchDeckAndCards]);
 
+  const showToast = (
+    message: string,
+    type: 'success' | 'error' = 'success'
+  ) => {
+    // Create a simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transition-all duration-300 ${
+      type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    }`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 300);
+    }, 3000);
+  };
+
   const handleGenerateCards = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!generateForm.topic.trim()) return;
 
     setIsGenerating(true);
+    setGenerationStatus('Preparing to generate cards...');
 
     try {
+      setGenerationStatus('Calling AI to generate flashcards...');
+
       const data = await authenticatedFetch('/api/flashcards/generate', {
         method: 'POST',
         body: JSON.stringify({
@@ -75,6 +100,8 @@ export default function DeckDetailPage() {
         }),
       });
 
+      setGenerationStatus('Saving cards to database...');
+
       setCards([...cards, ...data.cards]);
       setIsGenerateModalOpen(false);
       setGenerateForm({
@@ -83,17 +110,28 @@ export default function DeckDetailPage() {
         difficulty: 'medium',
         cardCount: 10,
       });
+
+      showToast(
+        `Successfully generated ${data.cards.length} flashcards!`,
+        'success'
+      );
     } catch (error) {
       console.error('Error generating cards:', error);
-      alert('Failed to generate cards');
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to generate cards';
+      showToast(errorMessage, 'error');
     } finally {
       setIsGenerating(false);
+      setGenerationStatus('');
     }
   };
 
   const handleStartStudy = () => {
     if (cards.length === 0) {
-      alert('No cards available to study. Generate some cards first!');
+      showToast(
+        'No cards available to study. Generate some cards first!',
+        'error'
+      );
       return;
     }
     setIsStudying(true);
@@ -170,10 +208,13 @@ export default function DeckDetailPage() {
             <Button
               variant='outline'
               onClick={() => setIsGenerateModalOpen(true)}
+              disabled={isGenerating}
             >
               Generate Cards
             </Button>
-            <Button onClick={handleStartStudy}>Start Studying</Button>
+            <Button onClick={handleStartStudy} disabled={isGenerating}>
+              Start Studying
+            </Button>
           </div>
         </div>
 
@@ -186,7 +227,10 @@ export default function DeckDetailPage() {
             <p className='text-gray-500 mb-6'>
               Generate AI-powered flashcards to start learning
             </p>
-            <Button onClick={() => setIsGenerateModalOpen(true)}>
+            <Button
+              onClick={() => setIsGenerateModalOpen(true)}
+              disabled={isGenerating}
+            >
               Generate Your First Cards
             </Button>
           </div>
@@ -200,11 +244,25 @@ export default function DeckDetailPage() {
 
         <Modal
           isOpen={isGenerateModalOpen}
-          onClose={() => setIsGenerateModalOpen(false)}
+          onClose={() => !isGenerating && setIsGenerateModalOpen(false)}
           title='Generate AI Flashcards'
           className='max-w-lg'
         >
           <form onSubmit={handleGenerateCards} className='space-y-4'>
+            {isGenerating && (
+              <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4'>
+                <div className='flex items-center space-x-2'>
+                  <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600'></div>
+                  <span className='text-sm text-blue-800 font-medium'>
+                    {generationStatus}
+                  </span>
+                </div>
+                <p className='text-xs text-blue-600 mt-1'>
+                  This may take 10-30 seconds depending on the number of cards
+                </p>
+              </div>
+            )}
+
             <Input
               label='Topic'
               value={generateForm.topic}
@@ -213,6 +271,7 @@ export default function DeckDetailPage() {
               }
               placeholder='What would you like to study?'
               required
+              disabled={isGenerating}
             />
 
             <div>
@@ -225,8 +284,9 @@ export default function DeckDetailPage() {
                   setGenerateForm({ ...generateForm, content: e.target.value })
                 }
                 placeholder='Paste notes, articles, or additional context here'
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed'
                 rows={4}
+                disabled={isGenerating}
               />
             </div>
 
@@ -242,7 +302,8 @@ export default function DeckDetailPage() {
                     difficulty: e.target.value as any,
                   })
                 }
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed'
+                disabled={isGenerating}
               >
                 <option value='easy'>Easy</option>
                 <option value='medium'>Medium</option>
@@ -263,6 +324,7 @@ export default function DeckDetailPage() {
                 })
               }
               required
+              disabled={isGenerating}
             />
 
             <div className='flex justify-end space-x-3 pt-4'>
@@ -270,11 +332,12 @@ export default function DeckDetailPage() {
                 type='button'
                 variant='outline'
                 onClick={() => setIsGenerateModalOpen(false)}
+                disabled={isGenerating}
               >
                 Cancel
               </Button>
               <Button type='submit' loading={isGenerating}>
-                Generate Cards
+                {isGenerating ? 'Generating...' : 'Generate Cards'}
               </Button>
             </div>
           </form>
