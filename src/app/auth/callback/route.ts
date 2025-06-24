@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
           persistSession: false,
           autoRefreshToken: false,
           detectSessionInUrl: false,
+          storageKey: 'supabase-auth-callback',
         },
       }
     );

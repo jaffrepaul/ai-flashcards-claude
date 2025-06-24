@@ -25,6 +25,7 @@ export const createSupabaseServerClient = (request?: NextRequest) => {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
+        storageKey: 'supabase-server',
       },
       global: {
         headers: accessToken
