@@ -6,6 +6,7 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from '@/lib/api-utils';
+import * as Sentry from '@sentry/nextjs';
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,6 +56,18 @@ export async function POST(request: NextRequest) {
     const { title, description, tags, isPublic, userId } = await request.json();
 
     if (!title || !userId) {
+      const error = new Error('Missing required fields: title, userId');
+      Sentry.captureException(error, {
+        tags: {
+          component: 'api/decks',
+          operation: 'create_deck',
+          type: 'validation_error'
+        },
+        extra: {
+          requestBody: { title, description, tags, isPublic, userId },
+          missingFields: [!title ? 'title' : null, !userId ? 'userId' : null].filter(Boolean)
+        }
+      });
       return createErrorResponse('Missing required fields: title, userId', 400);
     }
 
@@ -72,11 +85,43 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error creating deck:', error);
+      
+      const sentryError = new Error(`Database error: ${error.message}`);
+      sentryError.name = 'DeckCreationDatabaseError';
+      
+      Sentry.captureException(sentryError, {
+        tags: {
+          component: 'api/decks',
+          operation: 'create_deck',
+          type: 'database_error'
+        },
+        extra: {
+          supabaseError: error,
+          requestBody: { title, description, tags, isPublic, userId },
+          userId
+        }
+      });
+      
       return createErrorResponse('Failed to create deck', 500);
     }
 
     return createSuccessResponse({ deck }, 201);
   } catch (error) {
+    const sentryError = error instanceof Error ? error : new Error(String(error));
+    sentryError.name = 'DeckCreationUnexpectedError';
+    
+    Sentry.captureException(sentryError, {
+      tags: {
+        component: 'api/decks',
+        operation: 'create_deck',
+        type: 'unexpected_error'
+      },
+      extra: {
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined
+      }
+    });
+    
     return handleApiError(error, 'POST /api/decks');
   }
 }

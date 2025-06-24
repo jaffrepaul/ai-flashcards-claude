@@ -55,27 +55,36 @@ export function CreateDeckModal({
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        let errorData = null;
         
         try {
-          const errorData = await response.json();
+          errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch (parseError) {
           console.error('Failed to parse error response:', parseError);
         }
 
-        Sentry.captureException(new Error(errorMessage), {
+        // Create a more detailed error for Sentry
+        const error = new Error(errorMessage);
+        error.name = 'DeckCreationError';
+        
+        Sentry.captureException(error, {
           tags: {
             component: 'CreateDeckModal',
             operation: 'create_deck',
-            status: response.status.toString()
+            status: response.status.toString(),
+            endpoint: '/api/decks'
           },
           extra: {
             status: response.status,
             statusText: response.statusText,
             deckData: newDeck,
             userId,
-            url: '/api/decks'
-          }
+            url: '/api/decks',
+            errorData,
+            responseHeaders: Object.fromEntries(response.headers.entries())
+          },
+          level: 'error'
         });
 
         alert(`Failed to create deck: ${errorMessage}`);
@@ -90,7 +99,11 @@ export function CreateDeckModal({
         setNewDeck({ title: '', description: '', tags: '', isPublic: false });
       }
     } catch (error) {
-      Sentry.captureException(error, {
+      // Ensure error is properly captured with context
+      const sentryError = error instanceof Error ? error : new Error(String(error));
+      sentryError.name = 'DeckCreationNetworkError';
+      
+      Sentry.captureException(sentryError, {
         tags: {
           component: 'CreateDeckModal',
           operation: 'create_deck',
@@ -99,8 +112,11 @@ export function CreateDeckModal({
         extra: {
           deckData: newDeck,
           userId,
-          url: '/api/decks'
-        }
+          url: '/api/decks',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined
+        },
+        level: 'error'
       });
 
       console.error('Error creating deck:', error);
@@ -166,6 +182,30 @@ export function CreateDeckModal({
             Cancel
           </Button>
           <Button type="submit">Create Deck</Button>
+        </div>
+        
+        {/* Test button for Sentry - remove in production */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => {
+              Sentry.captureException(new Error('Test error from CreateDeckModal'), {
+                tags: {
+                  component: 'CreateDeckModal',
+                  operation: 'test_error',
+                  type: 'manual_test'
+                },
+                extra: {
+                  testData: 'This is a test error to verify Sentry is working'
+                }
+              });
+              alert('Test error sent to Sentry! Check your Sentry dashboard.');
+            }}
+            className="text-xs"
+          >
+            Test Sentry Error
+          </Button>
         </div>
       </form>
     </Modal>
