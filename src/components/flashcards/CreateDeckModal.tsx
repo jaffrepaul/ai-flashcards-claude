@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Deck } from '@/types/database';
 import * as Sentry from '@sentry/nextjs';
+import { supabase } from '@/lib/supabase';
 
 interface CreateDeckModalProps {
   isOpen: boolean;
@@ -37,10 +38,15 @@ export function CreateDeckModal({
     if (!newDeck.title.trim()) return;
 
     try {
+      // Get the current session and access token
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
       const response = await fetch('/api/decks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
         },
         body: JSON.stringify({
           title: newDeck.title,
