@@ -52,11 +52,33 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createSupabaseServerClient();
-    const { title, description, tags, isPublic, userId } = await request.json();
+    const supabaseServer = createSupabaseServerClient();
 
-    if (!title || !userId) {
-      const error = new Error('Missing required fields: title, userId');
+    // Get the authenticated user from the session
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseServer.auth.getUser();
+
+    if (authError || !user) {
+      Sentry.captureException(new Error('User not authenticated'), {
+        tags: {
+          component: 'api/decks',
+          operation: 'create_deck',
+          type: 'authentication_error',
+        },
+        extra: {
+          authError,
+          hasUser: !!user,
+        },
+      });
+      return createErrorResponse('Authentication required', 401);
+    }
+
+    const { title, description, tags, isPublic } = await request.json();
+
+    if (!title) {
+      const error = new Error('Missing required field: title');
       Sentry.captureException(error, {
         tags: {
           component: 'api/decks',
@@ -64,24 +86,21 @@ export async function POST(request: NextRequest) {
           type: 'validation_error',
         },
         extra: {
-          requestBody: { title, description, tags, isPublic, userId },
-          missingFields: [
-            !title ? 'title' : null,
-            !userId ? 'userId' : null,
-          ].filter(Boolean),
+          requestBody: { title, description, tags, isPublic },
+          userId: user.id,
         },
       });
-      return createErrorResponse('Missing required fields: title, userId', 400);
+      return createErrorResponse('Missing required field: title', 400);
     }
 
-    const { data: deck, error } = await supabase
+    const { data: deck, error } = await supabaseServer
       .from('decks')
       .insert({
         title,
         description,
         tags: tags || [],
         is_public: isPublic || false,
-        user_id: userId,
+        user_id: user.id, // Use the authenticated user's ID
       })
       .select()
       .single();
@@ -100,8 +119,8 @@ export async function POST(request: NextRequest) {
         },
         extra: {
           supabaseError: error,
-          requestBody: { title, description, tags, isPublic, userId },
-          userId,
+          requestBody: { title, description, tags, isPublic },
+          userId: user.id,
         },
       });
 

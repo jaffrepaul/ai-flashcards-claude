@@ -107,7 +107,6 @@ export default function DashboardPage() {
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
           onDeckCreated={handleDeckCreated}
-          userId={user?.id || ''}
         />
       </main>
     </div>

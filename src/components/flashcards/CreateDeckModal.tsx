@@ -11,14 +11,12 @@ interface CreateDeckModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDeckCreated: (deck: Deck) => void;
-  userId: string;
 }
 
 export function CreateDeckModal({
   isOpen,
   onClose,
   onDeckCreated,
-  userId,
 }: CreateDeckModalProps) {
   const [newDeck, setNewDeck] = useState({
     title: '',
@@ -52,7 +50,6 @@ export function CreateDeckModal({
             .map((tag) => tag.trim())
             .filter(Boolean),
           isPublic: newDeck.isPublic,
-          userId,
         }),
       });
 
@@ -82,7 +79,6 @@ export function CreateDeckModal({
             status: response.status,
             statusText: response.statusText,
             deckData: newDeck,
-            userId,
             url: '/api/decks',
             errorData,
             responseHeaders: Object.fromEntries(response.headers.entries()),
@@ -115,7 +111,6 @@ export function CreateDeckModal({
         },
         extra: {
           deckData: newDeck,
-          userId,
           url: '/api/decks',
           errorMessage: error instanceof Error ? error.message : String(error),
           errorStack: error instanceof Error ? error.stack : undefined,
