@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Deck } from '@/types/database';
+import * as Sentry from '@sentry/nextjs';
 
 interface CreateDeckModalProps {
   isOpen: boolean;
@@ -29,6 +30,9 @@ export function CreateDeckModal({
   const handleCreateDeck = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Test Sentry capture
+    Sentry.captureMessage('Testing Sentry capture from CreateDeckModal', 'info');
+
     if (!newDeck.title.trim()) return;
 
     try {
@@ -49,6 +53,35 @@ export function CreateDeckModal({
         }),
       });
 
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+
+        Sentry.captureException(new Error(errorMessage), {
+          tags: {
+            component: 'CreateDeckModal',
+            operation: 'create_deck',
+            status: response.status.toString()
+          },
+          extra: {
+            status: response.status,
+            statusText: response.statusText,
+            deckData: newDeck,
+            userId,
+            url: '/api/decks'
+          }
+        });
+
+        alert(`Failed to create deck: ${errorMessage}`);
+        return;
+      }
+
       const data = await response.json();
 
       if (response.ok) {
@@ -57,7 +90,21 @@ export function CreateDeckModal({
         setNewDeck({ title: '', description: '', tags: '', isPublic: false });
       }
     } catch (error) {
+      Sentry.captureException(error, {
+        tags: {
+          component: 'CreateDeckModal',
+          operation: 'create_deck',
+          type: 'network_error'
+        },
+        extra: {
+          deckData: newDeck,
+          userId,
+          url: '/api/decks'
+        }
+      });
+
       console.error('Error creating deck:', error);
+      alert('Failed to create deck. Please check your connection and try again.');
     }
   };
 
