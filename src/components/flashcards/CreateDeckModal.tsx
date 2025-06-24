@@ -42,6 +42,12 @@ export function CreateDeckModal({
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
 
+      console.log('Client session:', { 
+        hasSession: !!session, 
+        hasAccessToken: !!accessToken,
+        userId: session?.user?.id 
+      });
+
       const response = await fetch('/api/decks', {
         method: 'POST',
         headers: {
