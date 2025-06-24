@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/utils';
 import {
   handleApiError,
   createErrorResponse,
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createSupabaseServerClient();
     const { title, description, tags, isPublic, userId } = await request.json();
 
     if (!title || !userId) {
