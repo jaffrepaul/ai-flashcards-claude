@@ -26,14 +26,7 @@ export function Header() {
             {user ? (
               <>{/* Dashboard functionality accessible from other pages */}</>
             ) : (
-              <>
-                <Link
-                  href='/'
-                  className='text-gray-600 hover:text-gray-900 transition-colors'
-                >
-                  Features
-                </Link>
-              </>
+              <>{/* Features are shown on the homepage */}</>
             )}
           </nav>
 

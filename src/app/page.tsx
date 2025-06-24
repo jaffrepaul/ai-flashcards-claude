@@ -28,7 +28,7 @@ export default function HomePage() {
                       AI Flashcards
                     </span>
                   </h1>
-                  <p className='mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0'>
+                  <p className='mt-3 text-sm text-gray-500 sm:mt-5 sm:text-base sm:max-w-xl sm:mx-auto md:mt-5 md:text-lg lg:mx-0'>
                     Generate personalized flashcards from any topic using AI.
                     Master subjects faster with interactive quizzes and
                     intelligent difficulty tracking.
@@ -206,13 +206,21 @@ export default function HomePage() {
             <div className='mt-8'>
               {user ? (
                 <Link href='/dashboard'>
-                  <Button size='lg' className='w-full sm:w-auto'>
+                  <Button
+                    size='lg'
+                    variant='secondary'
+                    className='w-full sm:w-auto'
+                  >
                     Go to Dashboard
                   </Button>
                 </Link>
               ) : (
                 <Link href='/auth'>
-                  <Button size='lg' className='w-full sm:w-auto'>
+                  <Button
+                    size='lg'
+                    variant='secondary'
+                    className='w-full sm:w-auto'
+                  >
                     Get Started Free
                   </Button>
                 </Link>
