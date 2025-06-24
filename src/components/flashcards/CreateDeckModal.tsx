@@ -31,7 +31,10 @@ export function CreateDeckModal({
     e.preventDefault();
 
     // Test Sentry capture
-    Sentry.captureMessage('Testing Sentry capture from CreateDeckModal', 'info');
+    Sentry.captureMessage(
+      'Testing Sentry capture from CreateDeckModal',
+      'info'
+    );
 
     if (!newDeck.title.trim()) return;
 
@@ -56,7 +59,7 @@ export function CreateDeckModal({
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         let errorData = null;
-        
+
         try {
           errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
@@ -67,13 +70,13 @@ export function CreateDeckModal({
         // Create a more detailed error for Sentry
         const error = new Error(errorMessage);
         error.name = 'DeckCreationError';
-        
+
         Sentry.captureException(error, {
           tags: {
             component: 'CreateDeckModal',
             operation: 'create_deck',
             status: response.status.toString(),
-            endpoint: '/api/decks'
+            endpoint: '/api/decks',
           },
           extra: {
             status: response.status,
@@ -82,9 +85,9 @@ export function CreateDeckModal({
             userId,
             url: '/api/decks',
             errorData,
-            responseHeaders: Object.fromEntries(response.headers.entries())
+            responseHeaders: Object.fromEntries(response.headers.entries()),
           },
-          level: 'error'
+          level: 'error',
         });
 
         alert(`Failed to create deck: ${errorMessage}`);
@@ -100,27 +103,30 @@ export function CreateDeckModal({
       }
     } catch (error) {
       // Ensure error is properly captured with context
-      const sentryError = error instanceof Error ? error : new Error(String(error));
+      const sentryError =
+        error instanceof Error ? error : new Error(String(error));
       sentryError.name = 'DeckCreationNetworkError';
-      
+
       Sentry.captureException(sentryError, {
         tags: {
           component: 'CreateDeckModal',
           operation: 'create_deck',
-          type: 'network_error'
+          type: 'network_error',
         },
         extra: {
           deckData: newDeck,
           userId,
           url: '/api/decks',
           errorMessage: error instanceof Error ? error.message : String(error),
-          errorStack: error instanceof Error ? error.stack : undefined
+          errorStack: error instanceof Error ? error.stack : undefined,
         },
-        level: 'error'
+        level: 'error',
       });
 
       console.error('Error creating deck:', error);
-      alert('Failed to create deck. Please check your connection and try again.');
+      alert(
+        'Failed to create deck. Please check your connection and try again.'
+      );
     }
   };
 
@@ -183,23 +189,27 @@ export function CreateDeckModal({
           </Button>
           <Button type="submit">Create Deck</Button>
         </div>
-        
+
         {/* Test button for Sentry - remove in production */}
         <div className="mt-4 pt-4 border-t border-gray-200">
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => {
-              Sentry.captureException(new Error('Test error from CreateDeckModal'), {
-                tags: {
-                  component: 'CreateDeckModal',
-                  operation: 'test_error',
-                  type: 'manual_test'
-                },
-                extra: {
-                  testData: 'This is a test error to verify Sentry is working'
+              Sentry.captureException(
+                new Error('Test error from CreateDeckModal'),
+                {
+                  tags: {
+                    component: 'CreateDeckModal',
+                    operation: 'test_error',
+                    type: 'manual_test',
+                  },
+                  extra: {
+                    testData:
+                      'This is a test error to verify Sentry is working',
+                  },
                 }
-              });
+              );
               alert('Test error sent to Sentry! Check your Sentry dashboard.');
             }}
             className="text-xs"
