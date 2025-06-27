@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { supabaseServer } from '@/lib/supabase-admin';
 import { withAuth, requireAuth } from '@/lib/auth-middleware';
 import { createErrorResponse, createSuccessResponse } from '@/lib/api-utils';
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: deck, error } = await supabaseServer
-      .from('decks')
+      .from('deck')
       .insert({
         title,
         description,
@@ -71,6 +72,33 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error creating deck:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        fullError: JSON.stringify(error, null, 2),
+      });
+
+      // Explicitly capture the error with Sentry
+      Sentry.captureException(error, {
+        tags: {
+          route: 'POST /api/decks',
+          operation: 'create_deck',
+          error_type: 'database_error',
+        },
+        extra: {
+          user_id: user.id,
+          deck_data: { title, description, tags, isPublic },
+          supabase_error: error,
+          table_name: 'deck',
+          error_message: error.message,
+          error_code: error.code,
+          error_details: error.details,
+          error_hint: error.hint,
+        },
+      });
+
       return createErrorResponse('Failed to create deck', 500);
     }
 
@@ -80,6 +108,19 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('Authentication required', 401);
     }
     console.error('Error in POST /api/decks:', error);
+
+    // Explicitly capture any other errors with Sentry
+    Sentry.captureException(error, {
+      tags: {
+        route: 'POST /api/decks',
+        error_type: 'unexpected_error',
+      },
+      extra: {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        user_id: 'unknown',
+      },
+    });
+
     return createErrorResponse('Internal server error', 500);
   }
 }
