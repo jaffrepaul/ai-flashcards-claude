@@ -72,9 +72,6 @@ Make the questions engaging and educational.`;
       prompt,
     });
 
-    // BUG: This line will cause an error - trying to access a non-existent property
-    const buggyProperty = object.nonExistentProperty.someValue;
-
     // Insert cards into database
     const cardsToInsert = object.cards.map(card => ({
       deck_id: deckId,

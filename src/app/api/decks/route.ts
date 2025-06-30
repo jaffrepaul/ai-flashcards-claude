@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: deck, error } = await supabaseServer
-      .from('deck')
+      .from('decks')
       .insert({
         title,
         description,
