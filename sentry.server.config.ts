@@ -7,6 +7,14 @@ import * as Sentry from '@sentry/nextjs';
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
+  integrations: [
+    // Add the Vercel AI SDK integration for AI agent monitoring
+    Sentry.vercelAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+  ],
+
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,
 
@@ -14,18 +22,3 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
 });
-
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-// Your AI agent function
-async function aiAgent(userQuery) {
-  const result = await generateText({
-    model: openai('gpt-4o'),
-    prompt: userQuery,
-    experimental_telemetry: {
-      isEnabled: true,
-      functionId: 'ai-agent-main',
-    },
-  });
-  return result.text;
-}
