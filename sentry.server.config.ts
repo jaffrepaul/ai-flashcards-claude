@@ -14,3 +14,18 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
 });
+
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+// Your AI agent function
+async function aiAgent(userQuery) {
+  const result = await generateText({
+    model: openai('gpt-4o'),
+    prompt: userQuery,
+    experimental_telemetry: {
+      isEnabled: true,
+      functionId: 'ai-agent-main',
+    },
+  });
+  return result.text;
+}
